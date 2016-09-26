@@ -1,4 +1,3 @@
-" ############
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
@@ -9,12 +8,37 @@ call vundle#begin()
 "call vundle#begin('~/some/path/here')
 
 " let Vundle manage Vundle, required
-Plugin 'gmarik/Vundle.vim'
+Plugin 'VundleVim/Vundle.vim'
 
-Plugin 'flazz/vim-colorschemes'
 Plugin 'kien/ctrlp.vim'
+Plugin 'tpope/vim-fugitive'
+Plugin 'flazz/vim-colorschemes'
+Plugin 'rking/ag.vim'
+Plugin 'tpope/vim-rails'
 Plugin 'tpope/vim-surround'
 Plugin 'pangloss/vim-javascript'
+Plugin 'mxw/vim-jsx'
+" Plugin 'scrooloose/syntastic' " not working well?
+Plugin 'digitaltoad/vim-jade'
+Plugin 'slim-template/vim-slim.git'
+Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
+Plugin 'wakatime/vim-wakatime'
+Plugin 'xolox/vim-misc'
+Plugin 'xolox/vim-notes'
+Plugin 'alvan/vim-closetag'
+
+" React snippets
+  " vim-react-snippets:
+  Plugin 'justinj/vim-react-snippets'
+  " SnipMate and its dependencies:
+  Plugin 'MarcWeber/vim-addon-mw-utils'
+  Plugin 'tomtom/tlib_vim'
+  Plugin 'garbas/vim-snipmate'
+
+  " Other sets of snippets
+  Plugin 'honza/vim-snippets'
+
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -30,24 +54,54 @@ filetype plugin indent on    " required
 "
 " see :h vundle for more details or wiki for FAQ
 " Put your non-Plugin stuff after this line
-" ############ ^GOT THIS SECTION FROM https://github.com/gmarik/Vundle.vim#quick-start
 
-syntax on               " syntax highlighting
+syntax on
 colorscheme jellybeans
 
 set autoindent
-set autoread            " reload files when changed on disk, i.e. via `git checkout`
-set backspace=2         " Fix broken backspace in some setups
-set backupcopy=yes      " see :help crontab
-set clipboard=unnamed   " yank and paste with the system clipboard
-set directory-=.        " don't store swapfiles in the current directory
+set autoread
+set clipboard=unnamed
+set directory-=.
 set encoding=utf-8
-set expandtab           " expand tabs to spaces
+set expandtab
+"set list
+set number
+set nobackup
+set ruler
+set shiftwidth=2
+set scrolloff=3
+set softtabstop=2
+set foldmethod=indent
+set nowrap
 set list                " show trailing whitespace
 set listchars=tab:▸\ ,trail:▫
-set number              " show line numbers
-set nobackup            " get rid of anoying ~file 
-set ruler               " show where you are
-set shiftwidth=2        " normal mode indentation commands use 2 spaces
-set scrolloff=3         " show context above/below cursorline
-set softtabstop=2                                            " insert mode tab and backspace use 2 spaces
+set wildignore+=node_modules/**
+set wildignore+=public/**
+set wildignore+=app/assets/javascripts/bin/**
+
+" syntastic options recommended in their Readme
+" set statusline+=%#warningmsg#
+" set statusline+=%{SyntasticStatuslineFlag()}
+" set statusline+=%*
+"
+" let g:syntastic_always_populate_loc_list = 1
+" let g:syntastic_auto_loc_list = 1
+" let g:syntastic_check_on_open = 1
+" let g:syntastic_check_on_wq = 0
+"
+" Use silver searcher instead of ack
+let g:ackprg = 'ag --nogroup --nocolor --column'
+
+" Increase depth of ctrlp file search
+let g:ctrlp_max_files=0
+let g:ctrlp_max_depth=40
+let g:ctrlp_user_command = ['.git', 'cd %s && git ls-files . --cached --exclude-standard']
+
+" for vim-notes
+let g:notes_directories = ['~/Documents/Notes']
+
+" for vim-jsx
+let g:jsx_ext_required = 0
+
+" for vim-closetag
+let g:closetag_filenames = "*.html,*.xhtml,*.phtml,*.jsx"
