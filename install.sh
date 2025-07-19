@@ -37,6 +37,17 @@ create_symlink "$DOTFILES_DIR/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
 # Git configuration
 create_symlink "$DOTFILES_DIR/git/.gitconfig" "$HOME/.gitconfig"
 
+# Claude commands
+if [ -d "$DOTFILES_DIR/claude/commands" ]; then
+    mkdir -p "$HOME/.claude/commands"
+    for cmd in "$DOTFILES_DIR/claude/commands"/*.md; do
+        if [ -f "$cmd" ]; then
+            cmd_name=$(basename "$cmd")
+            create_symlink "$cmd" "$HOME/.claude/commands/$cmd_name"
+        fi
+    done
+fi
+
 # Create local config files from examples if they don't exist
 if [ ! -f "$HOME/.gitconfig.local" ] && [ -f "$DOTFILES_DIR/git/.gitconfig.local.example" ]; then
     cp "$DOTFILES_DIR/git/.gitconfig.local.example" "$HOME/.gitconfig.local"
