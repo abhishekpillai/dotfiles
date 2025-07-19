@@ -1,0 +1,11 @@
+# Local machine-specific configurations
+# Copy this to ~/.zshrc.local and customize
+
+# Example: Machine-specific aliases
+# alias work="cd ~/work/projects"
+
+# Example: Company-specific environment variables
+# export COMPANY_API_KEY="your-key-here"
+
+# Example: Local development paths
+# export ANDROID_HOME="$HOME/Library/Android/sdk"

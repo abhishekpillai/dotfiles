@@ -1,0 +1,12 @@
+[include]
+	path = ~/.gitconfig.local
+
+[user]
+	name = Abhishek Pillai
+	# Email should be set in ~/.gitconfig.local
+[color]
+	ui = auto
+[core]
+	excludesfile = ~/.gitignore_global
+[init]
+	defaultBranch = main
