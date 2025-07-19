@@ -14,3 +14,6 @@ ssh/known_hosts
 # Any backup files
 *.backup
 *~
+
+# Claude local directory
+.claude/
