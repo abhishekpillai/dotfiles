@@ -1,0 +1,16 @@
+# Sensitive files
+.zsh_history
+.zsh_sessions/
+*.zwc
+.DS_Store
+
+# Local overrides (for machine-specific settings)
+*.local
+
+# SSH keys and configs
+ssh/id_*
+ssh/known_hosts
+
+# Any backup files
+*.backup
+*~
