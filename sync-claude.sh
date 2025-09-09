@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Claude commands sync script - sync and install only Claude commands
+# Claude sync script - sync Claude commands and settings
 
 DOTFILES_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -31,19 +31,19 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h)
-            echo "Claude Commands Sync Tool"
+            echo "Claude Sync Tool"
             echo ""
             echo "Usage: $0 [options]"
             echo ""
             echo "Options:"
-            echo "  --install   Install commands from repo to ~/.claude/commands (default)"
-            echo "  --pull      Pull commands from ~/.claude/commands to repo"
+            echo "  --install   Install commands and settings from repo to ~/.claude (default)"
+            echo "  --pull      Pull commands and settings from ~/.claude to repo"
             echo "  --dry-run   Show what would be done without making changes"
             echo "  --help      Show this help message"
             echo ""
             echo "Examples:"
-            echo "  $0                    # Install all Claude commands from repo"
-            echo "  $0 --pull             # Update repo with your local commands"
+            echo "  $0                    # Install all Claude files from repo"
+            echo "  $0 --pull             # Update repo with your local Claude files"
             echo "  $0 --dry-run --pull   # Preview what would be pulled"
             exit 0
             ;;
@@ -55,7 +55,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo -e "${BLUE}Claude Commands Sync${NC}"
+echo -e "${BLUE}Claude Sync${NC}"
 echo -e "Mode: ${YELLOW}$MODE${NC}"
 if [ "$DRY_RUN" = true ]; then
     echo -e "${YELLOW}DRY RUN MODE - No changes will be made${NC}"
@@ -102,72 +102,89 @@ sync_command() {
 
 if [ "$MODE" = "install" ]; then
     # Install from repo to system
-    echo -e "${GREEN}Installing Claude commands from repo...${NC}\n"
+    echo -e "${GREEN}Installing Claude files from repo...${NC}\n"
     
+    # Sync commands
     if [ -d "$DOTFILES_DIR/claude/commands" ]; then
         # Count commands
         cmd_count=$(ls -1 "$DOTFILES_DIR/claude/commands"/*.md 2>/dev/null | wc -l)
-        if [ "$cmd_count" -eq 0 ]; then
-            echo -e "${YELLOW}No Claude commands found in repo${NC}"
-            exit 0
-        fi
-        
-        echo -e "Found ${BLUE}$cmd_count${NC} command(s) in repo\n"
-        
-        # Create target directory
-        if [ "$DRY_RUN" = false ]; then
-            mkdir -p "$HOME/.claude/commands"
-        fi
-        
-        # Sync each command
-        for cmd in "$DOTFILES_DIR/claude/commands"/*.md; do
-            if [ -f "$cmd" ]; then
-                cmd_name=$(basename "$cmd")
-                sync_command "$cmd" "$HOME/.claude/commands/$cmd_name"
+        if [ "$cmd_count" -gt 0 ]; then
+            echo -e "Found ${BLUE}$cmd_count${NC} command(s) in repo"
+            
+            # Create target directory
+            if [ "$DRY_RUN" = false ]; then
+                mkdir -p "$HOME/.claude/commands"
             fi
-        done
+            
+            # Sync each command
+            for cmd in "$DOTFILES_DIR/claude/commands"/*.md; do
+                if [ -f "$cmd" ]; then
+                    cmd_name=$(basename "$cmd")
+                    sync_command "$cmd" "$HOME/.claude/commands/$cmd_name"
+                fi
+            done
+            echo ""
+        else
+            echo -e "${YELLOW}No Claude commands found in repo${NC}"
+        fi
     else
-        echo -e "${RED}No claude/commands directory found in repo${NC}"
-        exit 1
+        echo -e "${YELLOW}No claude/commands directory found in repo${NC}"
+    fi
+    
+    # Sync settings.json
+    if [ -f "$DOTFILES_DIR/claude/settings.json" ]; then
+        echo -e "Syncing settings.json..."
+        sync_command "$DOTFILES_DIR/claude/settings.json" "$HOME/.claude/settings.json"
+        echo ""
+    else
+        echo -e "${YELLOW}No settings.json found in repo${NC}"
     fi
     
 elif [ "$MODE" = "pull" ]; then
     # Pull from system to repo
-    echo -e "${GREEN}Pulling Claude commands from system...${NC}\n"
+    echo -e "${GREEN}Pulling Claude files from system...${NC}\n"
     
+    # Pull commands
     if [ -d "$HOME/.claude/commands" ]; then
         # Count commands
         cmd_count=$(ls -1 "$HOME/.claude/commands"/*.md 2>/dev/null | wc -l)
-        if [ "$cmd_count" -eq 0 ]; then
-            echo -e "${YELLOW}No Claude commands found in ~/.claude/commands${NC}"
-            exit 0
-        fi
-        
-        echo -e "Found ${BLUE}$cmd_count${NC} command(s) in system\n"
-        
-        # Create target directory
-        if [ "$DRY_RUN" = false ]; then
-            mkdir -p "$DOTFILES_DIR/claude/commands"
-        fi
-        
-        # Sync each command
-        for cmd in "$HOME/.claude/commands"/*.md; do
-            if [ -f "$cmd" ]; then
-                cmd_name=$(basename "$cmd")
-                sync_command "$cmd" "$DOTFILES_DIR/claude/commands/$cmd_name"
+        if [ "$cmd_count" -gt 0 ]; then
+            echo -e "Found ${BLUE}$cmd_count${NC} command(s) in system"
+            
+            # Create target directory
+            if [ "$DRY_RUN" = false ]; then
+                mkdir -p "$DOTFILES_DIR/claude/commands"
             fi
-        done
-        
-        # Show git status if not dry run
-        if [ "$DRY_RUN" = false ]; then
-            echo -e "\n${GREEN}Git status:${NC}"
-            cd "$DOTFILES_DIR"
-            git status --short claude/
+            
+            # Sync each command
+            for cmd in "$HOME/.claude/commands"/*.md; do
+                if [ -f "$cmd" ]; then
+                    cmd_name=$(basename "$cmd")
+                    sync_command "$cmd" "$DOTFILES_DIR/claude/commands/$cmd_name"
+                fi
+            done
+            echo ""
+        else
+            echo -e "${YELLOW}No Claude commands found in ~/.claude/commands${NC}"
         fi
     else
         echo -e "${YELLOW}No ~/.claude/commands directory found${NC}"
-        echo -e "Claude may not be installed or no commands exist yet"
-        exit 1
+    fi
+    
+    # Pull settings.json
+    if [ -f "$HOME/.claude/settings.json" ]; then
+        echo -e "Syncing settings.json..."
+        sync_command "$HOME/.claude/settings.json" "$DOTFILES_DIR/claude/settings.json"
+        echo ""
+    else
+        echo -e "${YELLOW}No settings.json found in ~/.claude/${NC}"
+    fi
+    
+    # Show git status if not dry run
+    if [ "$DRY_RUN" = false ]; then
+        echo -e "${GREEN}Git status:${NC}"
+        cd "$DOTFILES_DIR"
+        git status --short claude/
     fi
 fi
 
