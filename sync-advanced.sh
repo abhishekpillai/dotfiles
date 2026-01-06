@@ -11,6 +11,10 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Get current username for path sanitization
+CURRENT_USER="$USER"
+HOME_PATH="/Users/$CURRENT_USER"
+
 # Default mode is pull (system -> repo)
 MODE="pull"
 DRY_RUN=false
@@ -79,12 +83,73 @@ sync_file() {
     fi
 }
 
-# Define file mappings
-declare -A FILE_MAP=(
-    ["$HOME/.zshrc"]="$DOTFILES_DIR/zsh/.zshrc"
-    ["$HOME/.zshenv"]="$DOTFILES_DIR/zsh/.zshenv"
-    ["$HOME/.p10k.zsh"]="$DOTFILES_DIR/zsh/.p10k.zsh"
-    ["$HOME/.gitconfig"]="$DOTFILES_DIR/git/.gitconfig"
+# Sanitize zsh files: replace hardcoded home path with $HOME
+sanitize_zsh() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}[DRY RUN]${NC} Would sanitize: $file"
+            return
+        fi
+
+        # Replace hardcoded home path with $HOME
+        sed -i '' "s|$HOME_PATH|\$HOME|g" "$file"
+
+        # Ensure .zshrc.local sourcing is present at end of .zshrc
+        if [[ "$file" == *".zshrc" ]] && ! grep -q "source ~/.zshrc.local" "$file"; then
+            echo "" >> "$file"
+            echo "# Load local machine-specific configurations if they exist" >> "$file"
+            echo '[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local' >> "$file"
+        fi
+
+        echo -e "${GREEN}✓${NC} Sanitized: $(basename "$file")"
+    fi
+}
+
+# Sanitize gitconfig: remove email and ensure .gitconfig.local include
+sanitize_gitconfig() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}[DRY RUN]${NC} Would sanitize: $file"
+            return
+        fi
+
+        # Remove email line
+        sed -i '' '/^[[:space:]]*email[[:space:]]*=/d' "$file"
+
+        # Add comment about email location if [user] section exists
+        if grep -q "^\[user\]" "$file" && ! grep -q "Email should be set" "$file"; then
+            sed -i '' 's/^\[user\]/[user]\
+	# Email should be set in ~\/.gitconfig.local/' "$file"
+        fi
+
+        # Ensure include for .gitconfig.local is at the top
+        if ! grep -q "path = ~/.gitconfig.local" "$file"; then
+            local tmp_file=$(mktemp)
+            echo "[include]" > "$tmp_file"
+            echo "	path = ~/.gitconfig.local" >> "$tmp_file"
+            echo "" >> "$tmp_file"
+            cat "$file" >> "$tmp_file"
+            mv "$tmp_file" "$file"
+        fi
+
+        echo -e "${GREEN}✓${NC} Sanitized: $(basename "$file")"
+    fi
+}
+
+# Define file mappings (parallel arrays for bash 3.2 compatibility)
+SYSTEM_FILES=(
+    "$HOME/.zshrc"
+    "$HOME/.zshenv"
+    "$HOME/.p10k.zsh"
+    "$HOME/.gitconfig"
+)
+REPO_FILES=(
+    "$DOTFILES_DIR/zsh/.zshrc"
+    "$DOTFILES_DIR/zsh/.zshenv"
+    "$DOTFILES_DIR/zsh/.p10k.zsh"
+    "$DOTFILES_DIR/git/.gitconfig"
 )
 
 echo -e "${BLUE}Dotfiles Sync - Mode: $MODE${NC}"
@@ -96,13 +161,18 @@ echo ""
 # Sync based on mode
 if [ "$MODE" = "pull" ]; then
     echo -e "${GREEN}Pulling changes from system to repo...${NC}\n"
-    
+
     # Sync regular files
-    for system_file in "${!FILE_MAP[@]}"; do
-        repo_file="${FILE_MAP[$system_file]}"
-        sync_file "$system_file" "$repo_file" "pull"
+    for i in "${!SYSTEM_FILES[@]}"; do
+        sync_file "${SYSTEM_FILES[$i]}" "${REPO_FILES[$i]}" "pull"
     done
     
+    # Sanitize synced files
+    echo -e "\n${GREEN}Sanitizing configs...${NC}"
+    sanitize_zsh "$DOTFILES_DIR/zsh/.zshrc"
+    sanitize_zsh "$DOTFILES_DIR/zsh/.zshenv"
+    sanitize_gitconfig "$DOTFILES_DIR/git/.gitconfig"
+
     # Sync Claude commands
     echo -e "\n${GREEN}Syncing Claude commands...${NC}"
     if [ -d "$HOME/.claude/commands" ]; then
@@ -113,7 +183,7 @@ if [ "$MODE" = "pull" ]; then
             fi
         done
     fi
-    
+
 else # push mode
     echo -e "${GREEN}Pushing changes from repo to system...${NC}\n"
     echo -e "${YELLOW}WARNING: This will overwrite your system files!${NC}"
@@ -128,11 +198,10 @@ else # push mode
     fi
     
     # Sync regular files
-    for system_file in "${!FILE_MAP[@]}"; do
-        repo_file="${FILE_MAP[$system_file]}"
-        sync_file "$repo_file" "$system_file" "push"
+    for i in "${!SYSTEM_FILES[@]}"; do
+        sync_file "${REPO_FILES[$i]}" "${SYSTEM_FILES[$i]}" "push"
     done
-    
+
     # Sync Claude commands
     echo -e "\n${GREEN}Syncing Claude commands...${NC}"
     if [ -d "$DOTFILES_DIR/claude/commands" ]; then
